@@ -23,9 +23,9 @@ Lab rgb_to_lab(RGB c) {
     double y = r*.2126 + g*.7152 + b*.0722;
     double z = r*.0193 + g*.1192 + b*.9505;
     x /= 0.95047; y /= 1.0; z /= 1.08883;
-    x = x > .008856 ? pow(x, 1.0/3) : (7.787*x + 16.0/116);
-    y = y > .008856 ? pow(y, 1.0/3) : (7.787*y + 16.0/116);
-    z = z > .008856 ? pow(z, 1.0/3) : (7.787*z + 16.0/116);
+    x = x > .008856 ? cbrt(x) : (7.787*x + 16.0/116);
+    y = y > .008856 ? cbrt(y) : (7.787*y + 16.0/116);
+    z = z > .008856 ? cbrt(z) : (7.787*z + 16.0/116);
     return (Lab){(116*y)-16, 500*(x-y), 200*(y-z)};
 }
 
@@ -59,7 +59,11 @@ int main(int argc, char* argv[]) {
 
     int w, h, ch;
     unsigned char* img = stbi_load(argv[1], &w, &h, &ch, 3);
-    if (!img) { fprintf(stderr, "Failed to load image.\n"); return 1; }
+    if (!img) {
+        fprintf(stderr, "Failed to load image: %s\n", stbi_failure_reason());
+        return 1;
+    }
+    printf("Loaded %s: %dx%d, channels: %d\n", argv[1], w, h, ch);
 
     RGB* buffer = malloc(w * h * sizeof(RGB));
     int* indices = malloc(w * h * sizeof(int));
@@ -95,9 +99,13 @@ int main(int argc, char* argv[]) {
     }
 
     FILE* out = fopen(argv[2], "w");
-    if (!out) { fprintf(stderr, "Failed to open output file.\n"); return 1; }
+    if (!out) {
+        fprintf(stderr, "Failed to open output file.\n");
+        return 1;
+    }
 
     fprintf(out, "%dx%d;", w, h);
+    printf("Encoding image...\n");
     int count = 1, last = indices[0];
     for (int i = 1; i < w * h; ++i) {
         if (indices[i] == last) {
@@ -112,11 +120,17 @@ int main(int argc, char* argv[]) {
     if (count > 1) fprintf(out, "%d%c\n", count, 'a' + last);
     else fprintf(out, "%c\n", 'a' + last);
 
+    fflush(out);
     fclose(out);
     free(buffer);
     free(indices);
     stbi_image_free(img);
 
-    printf("✓ Converted %s to %s (%dx%d, 16-color XGA)\n", argv[1], argv[2], w, h);
+    FILE* check = fopen(argv[2], "r");
+    fseek(check, 0, SEEK_END);
+    long size = ftell(check);
+    fclose(check);
+
+    printf("✓ Converted to %s (%ld bytes, %dx%d, 16-color XGA)\n", argv[2], size, w, h);
     return 0;
 }
