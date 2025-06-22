@@ -3,7 +3,7 @@
 all: compile install
 	
 compile:
-	gcc main.c -o xga-viewer -lm -DSTB_IMAGE_IMPLEMENTATION
+	gcc main.c -o png2xga -lm -DSTB_IMAGE_IMPLEMENTATION
 	
 install:
 	sudo cp png2xga /bin
