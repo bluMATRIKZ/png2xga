@@ -12,4 +12,4 @@ remove:
 	sudo rm -f /bin/png2xga
 	
 clean:
-	rm xga-viewer
+	rm png2xga
